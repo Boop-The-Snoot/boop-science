@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: true
 
-    name: Foundry project
+    name: Boop The Snoot
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,16 +23,8 @@ jobs:
         with:
           version: nightly
 
-      - name: Create dependencies directory
-        run: mkdir -p dependencies
-
       - name: Install Dependencies
-        run: |
-          forge install foundry-rs/forge-std@v1.9.4 --no-commit
-          forge install OpenZeppelin/openzeppelin-contracts@v5.1.0 --no-commit
-
-      - name: Show directory structure
-        run: ls -la dependencies/
+        run: forge soldeer install
 
       - name: Run Forge build
         run: forge build
