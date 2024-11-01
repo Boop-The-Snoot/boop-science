@@ -11,7 +11,7 @@ contract BoopTheSnootAdvancedTest is Test {
     event UnclaimedRewardsWithdrawn(uint256 indexed campaignId, uint256 amount, address indexed recipient);
     event RewardsClaimed(address indexed user, uint256 indexed campaignId, uint256 amount);
     event ReferralMade(address indexed referrer, address indexed referee, uint256 lpTokenAmount);
-    
+
     BoopTheSnoot public boopTheSnoot;
     MockERC20 public rewardToken;
     MockERC20 public lpToken;
@@ -44,7 +44,7 @@ contract BoopTheSnootAdvancedTest is Test {
 
         // Deploy main contract
         boopTheSnoot = new BoopTheSnoot();
-        
+
         // Setup roles
         boopTheSnoot.grantRole(ADMIN_ROLE, admin);
         boopTheSnoot.grantRole(UPDATER_ROLE, updater);
@@ -63,61 +63,56 @@ contract BoopTheSnootAdvancedTest is Test {
 
         vm.prank(admin);
         rewardToken.approve(address(boopTheSnoot), 1_000_000 ether);
-        
+
         vm.prank(updater);
         rewardToken.approve(address(boopTheSnoot), 1_000_000 ether);
-        
+
         vm.prank(user1);
         rewardToken.approve(address(boopTheSnoot), 1_000 ether);
-        
+
         vm.prank(user2);
         rewardToken.approve(address(boopTheSnoot), 1_000 ether);
-        
+
         vm.prank(user3);
         rewardToken.approve(address(boopTheSnoot), 1_000 ether);
 
         // Whitelist tokens
         vm.prank(admin);
         boopTheSnoot.whitelistToken(address(rewardToken));
-        
+
         vm.prank(admin);
         boopTheSnoot.whitelistToken(address(lpToken));
 
         // Create initial campaign for referral tests
         uint256 startTimestamp = block.timestamp + 60;
         uint256 endTimestamp = startTimestamp + 3600;
-        
+
         vm.startPrank(owner);
         boopTheSnoot.createCampaign(
-            address(rewardToken),
-            address(lpToken),
-            1 ether,
-            startTimestamp,
-            endTimestamp,
-            1000 ether
+            address(rewardToken), address(lpToken), 1 ether, startTimestamp, endTimestamp, 1000 ether
         );
         rewardToken.transfer(address(boopTheSnoot), 1000 ether);
 
         // Mint LP tokens for referral tests
         lpToken.mint(user1, 100 ether);
         vm.stopPrank();
-        
+
         vm.prank(user1);
         lpToken.approve(address(boopTheSnoot), 100 ether);
     }
 
     function test_MerkleRootUpdate() public {
         bytes32 newRoot = keccak256(abi.encodePacked("new merkle root"));
-        
+
         vm.prank(updater);
         boopTheSnoot.updateGlobalRoot(newRoot);
-        
+
         assertEq(boopTheSnoot.globalMerkleRoot(), newRoot);
     }
 
     function test_NonUpdaterCannotUpdateRoot() public {
         bytes32 newRoot = keccak256(abi.encodePacked("new merkle root"));
-        
+
         vm.prank(user1);
         // Just check that it reverts, without checking the specific message
         vm.expectRevert();
@@ -131,30 +126,20 @@ contract BoopTheSnootAdvancedTest is Test {
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSignature("InvalidCampaignDuration()"));
         boopTheSnoot.createCampaign(
-            address(rewardToken),
-            address(lpToken),
-            1 ether,
-            startTimestamp,
-            endTimestamp,
-            2000 ether
+            address(rewardToken), address(lpToken), 1 ether, startTimestamp, endTimestamp, 2000 ether
         );
     }
 
     function test_CannotCreateCampaignWithNonWhitelistedToken() public {
         MockERC20 fakeToken = new MockERC20("Fake Token", "FAKE");
-        
+
         uint256 startTimestamp = block.timestamp + 60;
         uint256 endTimestamp = startTimestamp + 3600;
 
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSignature("InvalidRewardToken()"));
         boopTheSnoot.createCampaign(
-            address(fakeToken),
-            address(lpToken),
-            1 ether,
-            startTimestamp,
-            endTimestamp,
-            1000 ether
+            address(fakeToken), address(lpToken), 1 ether, startTimestamp, endTimestamp, 1000 ether
         );
     }
 
@@ -164,12 +149,7 @@ contract BoopTheSnootAdvancedTest is Test {
 
         vm.startPrank(owner);
         boopTheSnoot.createCampaign(
-            address(rewardToken),
-            address(lpToken),
-            1 ether,
-            startTimestamp,
-            endTimestamp,
-            1000 ether
+            address(rewardToken), address(lpToken), 1 ether, startTimestamp, endTimestamp, 1000 ether
         );
         rewardToken.transfer(address(boopTheSnoot), 1000 ether);
         vm.stopPrank();
@@ -188,13 +168,8 @@ contract BoopTheSnootAdvancedTest is Test {
         uint256 campaignId = boopTheSnoot.campaignCount() - 1;
         vm.warp(block.timestamp + 61); // Move past campaign start time
 
-        bytes32 leaf = keccak256(abi.encodePacked(
-            campaignId,
-            user1,
-            uint256(100 ether),
-            "game"
-        ));
-        
+        bytes32 leaf = keccak256(abi.encodePacked(campaignId, user1, uint256(100 ether), "game"));
+
         vm.prank(updater);
         boopTheSnoot.updateGlobalRoot(leaf);
 
@@ -221,13 +196,8 @@ contract BoopTheSnootAdvancedTest is Test {
         uint256 campaignId = boopTheSnoot.campaignCount() - 1;
         vm.warp(block.timestamp + 61); // Move past campaign start time
 
-        bytes32 leaf = keccak256(abi.encodePacked(
-            campaignId,
-            user1,
-            uint256(100 ether),
-            "game"
-        ));
-        
+        bytes32 leaf = keccak256(abi.encodePacked(campaignId, user1, uint256(100 ether), "game"));
+
         vm.prank(updater);
         boopTheSnoot.updateGlobalRoot(leaf);
 
@@ -258,12 +228,7 @@ contract BoopTheSnootAdvancedTest is Test {
 
         vm.startPrank(owner);
         boopTheSnoot.createCampaign(
-            address(rewardToken),
-            address(lpToken),
-            1 ether,
-            startTimestamp,
-            endTimestamp,
-            1000 ether
+            address(rewardToken), address(lpToken), 1 ether, startTimestamp, endTimestamp, 1000 ether
         );
         rewardToken.transfer(address(boopTheSnoot), 1000 ether);
         vm.stopPrank();
@@ -277,7 +242,7 @@ contract BoopTheSnootAdvancedTest is Test {
 
         vm.expectEmit(true, false, true, true);
         emit UnclaimedRewardsWithdrawn(campaignId, 1000 ether, admin);
-        
+
         vm.prank(admin);
         boopTheSnoot.adminWithdrawUnclaimedRewards(campaignId);
 
@@ -291,12 +256,7 @@ contract BoopTheSnootAdvancedTest is Test {
 
         vm.startPrank(owner);
         boopTheSnoot.createCampaign(
-            address(rewardToken),
-            address(lpToken),
-            1 ether,
-            startTimestamp,
-            endTimestamp,
-            1000 ether
+            address(rewardToken), address(lpToken), 1 ether, startTimestamp, endTimestamp, 1000 ether
         );
         rewardToken.transfer(address(boopTheSnoot), 1000 ether);
         vm.stopPrank();
@@ -324,12 +284,12 @@ contract BoopTheSnootAdvancedTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit ReferralMade(user1, user2, lpAmount);
-        
+
         vm.prank(user1);
         boopTheSnoot.makeReferral(referees, amounts);
 
         assertEq(boopTheSnoot.referrerOf(user2), user1, "Referrer should be user1");
-        
+
         address[] memory actualReferees = boopTheSnoot.getReferees(user1);
         assertEq(actualReferees.length, 1, "Should have one referee");
         assertEq(actualReferees[0], user2, "Referee should be user2");
@@ -339,7 +299,7 @@ contract BoopTheSnootAdvancedTest is Test {
         uint256 lpAmount = 10 ether;
 
         address[] memory referees = new address[](1);
-        referees[0] = user1;  // Self-referral
+        referees[0] = user1; // Self-referral
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = lpAmount;
 
@@ -367,7 +327,7 @@ contract BoopTheSnootAdvancedTest is Test {
     function test_ReferralRewardClaim() public {
         // Setup initial referral
         uint256 lpAmount = 10 ether;
-        
+
         address[] memory referees = new address[](1);
         referees[0] = user2;
         uint256[] memory amounts = new uint256[](1);
@@ -378,11 +338,7 @@ contract BoopTheSnootAdvancedTest is Test {
 
         // Setup referral reward claim
         uint256 referralAmount = 50 ether;
-        bytes32 leaf = keccak256(abi.encodePacked(
-            user1,
-            referralAmount,
-            "referral"
-        ));
+        bytes32 leaf = keccak256(abi.encodePacked(user1, referralAmount, "referral"));
 
         vm.prank(updater);
         boopTheSnoot.updateGlobalRoot(leaf);
@@ -402,7 +358,7 @@ contract BoopTheSnootAdvancedTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit RewardsClaimed(user1, 0, referralAmount);
-        
+
         vm.prank(user1);
         boopTheSnoot.claimRewards(claims, proofs);
 
@@ -413,7 +369,7 @@ contract BoopTheSnootAdvancedTest is Test {
     function test_PreventDoubleReferralRewardClaim() public {
         // Setup initial referral
         uint256 lpAmount = 10 ether;
-        
+
         address[] memory referees = new address[](1);
         referees[0] = user2;
         uint256[] memory amounts = new uint256[](1);
@@ -424,11 +380,7 @@ contract BoopTheSnootAdvancedTest is Test {
 
         // Setup referral reward claim
         uint256 referralAmount = 50 ether;
-        bytes32 leaf = keccak256(abi.encodePacked(
-            user1,
-            referralAmount,
-            "referral"
-        ));
+        bytes32 leaf = keccak256(abi.encodePacked(user1, referralAmount, "referral"));
 
         vm.prank(updater);
         boopTheSnoot.updateGlobalRoot(leaf);
@@ -451,4 +403,4 @@ contract BoopTheSnootAdvancedTest is Test {
         boopTheSnoot.claimRewards(claims, proofs);
         vm.stopPrank();
     }
-} 
+}

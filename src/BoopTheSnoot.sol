@@ -24,15 +24,18 @@ contract BoopTheSnoot is ReentrancyGuard, Pausable, AccessControl {
     uint256 public maxTokensPerBatch = 50;
 
     // Referral Program State Variables
-    mapping(address => address) public referrerOf;     // Maps a referee to their referrer
-    mapping(address => address[]) public referees;     // Maps a referrer to their list of referees
-    mapping(bytes32 => bool) public claimedBudgets;    // Tracks claimed referral rewards
+    mapping(address => address) public referrerOf; // Maps a referee to their referrer
+    mapping(address => address[]) public referees; // Maps a referrer to their list of referees
+    mapping(bytes32 => bool) public claimedBudgets; // Tracks claimed referral rewards
 
     // Enums and Structs
-    enum RewardType { Game, Referral }
+    enum RewardType {
+        Game,
+        Referral
+    }
 
     struct RewardClaim {
-        uint256 campaignId;    // Relevant for Game rewards; set to 0 for Referral rewards
+        uint256 campaignId; // Relevant for Game rewards; set to 0 for Referral rewards
         address user;
         uint256 amount;
         RewardType rewardType;
@@ -175,14 +178,7 @@ contract BoopTheSnoot is ReentrancyGuard, Pausable, AccessControl {
         campaign.adminWithdrawn = false;
 
         emit CampaignCreated(
-            campaignCount,
-            msg.sender,
-            rewardToken,
-            lpToken,
-            maxRewardRate,
-            startTimestamp,
-            endTimestamp,
-            totalRewards
+            campaignCount, msg.sender, rewardToken, lpToken, maxRewardRate, startTimestamp, endTimestamp, totalRewards
         );
 
         campaignCount++;
@@ -200,10 +196,11 @@ contract BoopTheSnoot is ReentrancyGuard, Pausable, AccessControl {
     /**
      * @dev Function to claim rewards (both game and referral rewards).
      */
-    function claimRewards(
-        RewardClaim[] calldata rewards,
-        bytes32[][] calldata merkleProofs
-    ) external nonReentrant whenNotPaused {
+    function claimRewards(RewardClaim[] calldata rewards, bytes32[][] calldata merkleProofs)
+        external
+        nonReentrant
+        whenNotPaused
+    {
         uint256 numClaims = rewards.length;
         if (numClaims == 0) revert InvalidInputArrayLengths();
         if (numClaims != merkleProofs.length) revert InvalidInputArrayLengths();
@@ -228,12 +225,7 @@ contract BoopTheSnoot is ReentrancyGuard, Pausable, AccessControl {
     /**
      * @dev Internal function to handle game reward claims.
      */
-    function _claimGameReward(
-        uint256 campaignId,
-        address user,
-        uint256 amount,
-        bytes32[] calldata proof
-    ) internal {
+    function _claimGameReward(uint256 campaignId, address user, uint256 amount, bytes32[] calldata proof) internal {
         Campaign storage campaign = campaigns[campaignId];
 
         if (block.timestamp < campaign.startTimestamp) revert ClaimNotAllowed();
@@ -260,11 +252,7 @@ contract BoopTheSnoot is ReentrancyGuard, Pausable, AccessControl {
     /**
      * @dev Internal function to handle referral reward claims.
      */
-    function _claimReferralReward(
-        address user,
-        uint256 amount,
-        bytes32[] calldata proof
-    ) internal {
+    function _claimReferralReward(address user, uint256 amount, bytes32[] calldata proof) internal {
         bytes32 leaf = keccak256(abi.encodePacked(user, amount, "referral"));
         if (!MerkleProof.verify(proof, globalMerkleRoot, leaf)) revert InvalidProof();
 
@@ -280,7 +268,11 @@ contract BoopTheSnoot is ReentrancyGuard, Pausable, AccessControl {
     /**
      * @dev Function to make referrals.
      */
-    function makeReferral(address[] calldata _referees, uint256[] calldata _lpAmounts) external nonReentrant whenNotPaused {
+    function makeReferral(address[] calldata _referees, uint256[] calldata _lpAmounts)
+        external
+        nonReentrant
+        whenNotPaused
+    {
         if (_referees.length != _lpAmounts.length) revert InvalidReferralInput();
         if (_referees.length > maxTokensPerBatch) revert BatchSizeTooLarge();
 

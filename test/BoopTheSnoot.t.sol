@@ -9,7 +9,7 @@ contract BoopTheSnootTest is Test {
     // Add event definitions
     event UnclaimedRewardsWithdrawn(uint256 indexed campaignId, uint256 amount, address indexed recipient);
     event RewardsClaimed(address indexed user, uint256 indexed campaignId, uint256 amount);
-    
+
     BoopTheSnoot public boopTheSnoot;
     MockERC20 public rewardToken;
     MockERC20 public lpToken;
@@ -34,7 +34,7 @@ contract BoopTheSnootTest is Test {
         user3Wallet = makeAddr("user3");
 
         console.log("Owner address:", owner);
-        
+
         // Deploy tokens first
         vm.startPrank(owner);
         rewardToken = new MockERC20("Reward Token", "RWD");
@@ -42,7 +42,7 @@ contract BoopTheSnootTest is Test {
 
         // Deploy main contract with owner as deployer
         boopTheSnoot = new BoopTheSnoot();
-        
+
         // Verify roles
         bytes32 defaultAdminRole = 0x00;
         console.log("Has default admin role:", boopTheSnoot.hasRole(defaultAdminRole, owner));
@@ -73,7 +73,7 @@ contract BoopTheSnootTest is Test {
         rewardToken.approve(address(boopTheSnoot), mintAmount);
         lpToken.approve(address(boopTheSnoot), mintAmount);
         vm.stopPrank();
-        
+
         // Whitelist tokens using admin
         vm.startPrank(admin);
         try boopTheSnoot.whitelistToken(address(rewardToken)) {
@@ -98,12 +98,7 @@ contract BoopTheSnootTest is Test {
 
         vm.prank(owner);
         boopTheSnoot.createCampaign(
-            address(rewardToken),
-            address(lpToken),
-            maxRate,
-            startTimestamp,
-            endTimestamp,
-            totalRewards
+            address(rewardToken), address(lpToken), maxRate, startTimestamp, endTimestamp, totalRewards
         );
 
         (
@@ -140,12 +135,7 @@ contract BoopTheSnootTest is Test {
 
         vm.startPrank(owner);
         boopTheSnoot.createCampaign(
-            address(rewardToken),
-            address(lpToken),
-            1 ether,
-            startTimestamp,
-            endTimestamp,
-            1000 ether
+            address(rewardToken), address(lpToken), 1 ether, startTimestamp, endTimestamp, 1000 ether
         );
         rewardToken.transfer(address(boopTheSnoot), 1000 ether);
         vm.stopPrank();
@@ -165,12 +155,7 @@ contract BoopTheSnootTest is Test {
 
         vm.startPrank(owner);
         boopTheSnoot.createCampaign(
-            address(rewardToken),
-            address(lpToken),
-            1 ether,
-            startTimestamp,
-            endTimestamp,
-            1000 ether
+            address(rewardToken), address(lpToken), 1 ether, startTimestamp, endTimestamp, 1000 ether
         );
         rewardToken.transfer(address(boopTheSnoot), 1000 ether);
 
@@ -209,12 +194,7 @@ contract BoopTheSnootTest is Test {
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         boopTheSnoot.createCampaign(
-            address(rewardToken),
-            address(lpToken),
-            1 ether,
-            startTimestamp,
-            endTimestamp,
-            1000 ether
+            address(rewardToken), address(lpToken), 1 ether, startTimestamp, endTimestamp, 1000 ether
         );
     }
 
@@ -224,12 +204,7 @@ contract BoopTheSnootTest is Test {
 
         vm.startPrank(owner);
         boopTheSnoot.createCampaign(
-            address(rewardToken),
-            address(lpToken),
-            1 ether,
-            startTimestamp,
-            endTimestamp,
-            1000 ether
+            address(rewardToken), address(lpToken), 1 ether, startTimestamp, endTimestamp, 1000 ether
         );
         rewardToken.transfer(address(boopTheSnoot), 1000 ether);
         vm.stopPrank();
@@ -238,16 +213,18 @@ contract BoopTheSnootTest is Test {
         vm.warp(startTimestamp);
 
         // Create merkle tree data - UPDATED to match contract's format
-        bytes32 leaf = keccak256(abi.encodePacked(
-            uint256(0),      // campaignId
-            user1Wallet,     // user
-            uint256(100 ether), // amount
-            "game"          // literal string "game"
-        ));
-        
+        bytes32 leaf = keccak256(
+            abi.encodePacked(
+                uint256(0), // campaignId
+                user1Wallet, // user
+                uint256(100 ether), // amount
+                "game" // literal string "game"
+            )
+        );
+
         // For testing purposes, we'll use a simple one-node merkle tree
         bytes32[] memory proof = new bytes32[](0);
-        bytes32 root = leaf;  // For a single-node tree, the leaf is the root
+        bytes32 root = leaf; // For a single-node tree, the leaf is the root
 
         vm.prank(updater);
         boopTheSnoot.updateGlobalRoot(root);
@@ -268,10 +245,6 @@ contract BoopTheSnootTest is Test {
         vm.stopPrank();
 
         // Verify the claim was successful
-        assertEq(
-            boopTheSnoot.userClaims(0, user1Wallet),
-            100 ether,
-            "Claim amount should be recorded"
-        );
+        assertEq(boopTheSnoot.userClaims(0, user1Wallet), 100 ether, "Claim amount should be recorded");
     }
-} 
+}

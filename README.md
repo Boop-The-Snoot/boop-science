@@ -1,66 +1,136 @@
-## Foundry
+# Boop The Snoot
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A smart contract system for managing reward campaigns and referral programs on Ethereum.
 
-Foundry consists of:
+## Overview
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Boop The Snoot is a modular reward distribution system that enables:
+- Creation and management of reward campaigns
+- Merkle-tree based reward claiming
+- Referral program management
+- Token whitelisting and administration
+- Secure withdrawal mechanisms with cooldown periods
 
-## Documentation
+## Key Features
 
-https://book.getfoundry.sh/
+- **Campaign Management**: Create and manage reward campaigns with customizable parameters
+- **Reward Distribution**: Efficient reward distribution using Merkle proofs
+- **Referral System**: Built-in referral tracking with LP token integration
+- **Security Features**: 
+  - Role-based access control
+  - Reentrancy protection
+  - Pausable functionality
+  - Timelock for parameter changes
+  - Withdrawal cooldown periods
 
-## Usage
+## Technical Stack
+
+- Solidity ^0.8.28
+- OpenZeppelin Contracts
+- Foundry for development and testing
+
+## Getting Started
+
+### Prerequisites
+
+1. Install Foundry:
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+2. Install dependencies:
+```bash
+forge install
+```
 
 ### Build
 
-```shell
-$ forge build
+```bash
+forge build
 ```
 
 ### Test
 
-```shell
-$ forge test
+Run all tests:
+```bash
+forge test
+```
+
+Run tests with detailed output:
+```bash
+forge test -vv
 ```
 
 ### Format
 
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
+```bash
+forge fmt
 ```
 
 ### Deploy
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+```bash
+forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
-### Cast
+## Contract Architecture
 
-```shell
-$ cast <subcommand>
-```
+### Core Components
 
-### Help
+1. **Campaign System**
+   - Campaign creation and management
+   - Reward rate controls
+   - Token deposit/withdrawal mechanisms
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+2. **Reward Distribution**
+   - Merkle-tree based claiming
+   - Support for both game and referral rewards
+   - Batch claim processing
+
+3. **Referral Program**
+   - Referrer-referee tracking
+   - LP token integration
+   - Anti-gaming mechanisms
+
+4. **Administration**
+   - Role-based access control
+   - Token whitelisting
+   - Parameter management with timelock
+
+## Security Features
+
+- Reentrancy Guards
+- Access Control
+- Pausable Functionality
+- Time-based Cooldowns
+- Parameter Change Delays
+- Whitelist Controls
+
+## Testing
+
+The project includes comprehensive test suites:
+- Basic functionality tests
+- Advanced integration tests
+- Edge case handling
+- Security scenario testing
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
+
+## License
+
+Business Source License 1.1
+
+## Documentation
+
+For detailed documentation of the smart contracts and their functionality, please refer to the inline code comments and the test files.
+
+## Support
+
+For questions and support, please open an issue in the repository.
