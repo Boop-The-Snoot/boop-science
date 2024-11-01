@@ -23,19 +23,24 @@ jobs:
         with:
           version: nightly
 
-      - name: Install Dependencies
-        run: forge install
+      - name: Create dependencies directory
+        run: mkdir -p dependencies
 
-      - name: Show Forge version
-        run: forge --version
+      - name: Install Dependencies
+        run: |
+          forge install foundry-rs/forge-std@v1.9.4 --no-commit
+          forge install OpenZeppelin/openzeppelin-contracts@v5.1.0 --no-commit
+
+      - name: Show directory structure
+        run: ls -la dependencies/
+
+      - name: Run Forge build
+        run: forge build
+        id: build
 
       - name: Run Forge fmt
         run: forge fmt --check
         id: fmt
-
-      - name: Run Forge build
-        run: forge build --sizes
-        id: build
 
       - name: Run Forge tests
         run: forge test -vvv
