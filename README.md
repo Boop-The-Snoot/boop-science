@@ -41,10 +41,10 @@ foundryup
 
 2. Install dependencies:
 ```bash
-forge install
+forge soldeer install
 ```
 
-Note: This project uses Soldeer for dependency management through Forge.
+Note: This project uses Soldeer through Forge for dependency management.
 
 ### Build
 
