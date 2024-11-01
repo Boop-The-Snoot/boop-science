@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: true
 
-    name: Foundry project
+    name: Boop The Snoot
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,18 +24,15 @@ jobs:
           version: nightly
 
       - name: Install Dependencies
-        run: forge install
+        run: forge soldeer install
 
-      - name: Show Forge version
-        run: forge --version
+      - name: Run Forge build
+        run: forge build
+        id: build
 
       - name: Run Forge fmt
         run: forge fmt --check
         id: fmt
-
-      - name: Run Forge build
-        run: forge build --sizes
-        id: build
 
       - name: Run Forge tests
         run: forge test -vvv
