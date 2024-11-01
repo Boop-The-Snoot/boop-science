@@ -44,6 +44,8 @@ foundryup
 forge install
 ```
 
+Note: This project uses Soldeer for dependency management through Forge.
+
 ### Build
 
 ```bash
