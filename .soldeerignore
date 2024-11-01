@@ -10,12 +10,9 @@ out/
 # Docs
 docs/
 
-# misc
-.DS_Store
-.vscode
-
 # Dotenv file
 .env
+
 
 # Soldeer
 /dependencies
