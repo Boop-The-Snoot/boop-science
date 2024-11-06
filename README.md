@@ -72,48 +72,27 @@ forge fmt
 
 ### Deploy
 
-1. Set up your environment variables in a `.env` file:
+1. Deploy to Berachain Testnet (bArtio):
 ```bash
-PRIVATE_KEY=your_private_key
-ADMIN_ADDRESS=address_for_admin_role
-UPDATER_ADDRESS=address_for_updater_role
-RPC_URL=your_rpc_url
+forge create \
+    --rpc-url https://bartio.rpc.berachain.com \
+    --private-key $PRIVATE_KEY \
+    src/BoopTheSnoot.sol:BoopTheSnoot \
+    --legacy
 ```
 
-2. Deploy to Berachain Testnet (Artio):
+2. Deploy to Berachain Mainnet (when available):
 ```bash
-forge script script/BoopTheSnoot.s.sol:BoopTheSnootScript \
-    --rpc-url https://artio.rpc.berachain.com \
-    --broadcast \
-    --verify \
-    --chain-id 80085 \
-    -vvvv
-```
-
-3. Deploy to Berachain Mainnet (when available):
-```bash
-forge script script/BoopTheSnoot.s.sol:BoopTheSnootScript \
+forge create \
     --rpc-url https://mainnet.rpc.berachain.com \
-    --broadcast \
-    --verify \
-    --chain-id 80086 \
-    --legacy \
-    -vvvv
-```
-
-4. Deploy to other networks (e.g., Ethereum):
-```bash
-forge script script/BoopTheSnoot.s.sol:BoopTheSnootScript \
-    --rpc-url ${RPC_URL} \
-    --broadcast \
-    --verify \
-    -vvvv
+    --private-key $PRIVATE_KEY \
+    src/BoopTheSnoot.sol:BoopTheSnoot \
+    --legacy
 ```
 
 Note: Make sure to:
 - Replace environment variables with actual values
 - Have sufficient BERA tokens for deployment on Berachain
-- Have sufficient ETH for deployment on Ethereum
 - Verify contract parameters before mainnet deployment
 - Test thoroughly on testnet first
 - Check [Berachain documentation](https://www.berachain.com/) for the latest network configurations
