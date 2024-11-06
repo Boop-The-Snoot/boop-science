@@ -13,4 +13,4 @@ contract MockFailingToken is MockERC20 {
     function transfer(address, uint256) public pure override returns (bool) {
         return false;
     }
-} 
+}

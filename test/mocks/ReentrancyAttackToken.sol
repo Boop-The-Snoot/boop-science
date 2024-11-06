@@ -10,13 +10,8 @@ contract ReentrancyAttackToken is MockERC20 {
     function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
         // Attempt reentrancy attack
         BoopTheSnoot(msg.sender).createCampaign(
-            address(this),
-            address(this),
-            1 ether,
-            block.timestamp + 60,
-            block.timestamp + 3600,
-            1000 ether
+            address(this), address(this), 1 ether, block.timestamp + 60, block.timestamp + 3600, 1000 ether
         );
         return super.transferFrom(from, to, amount);
     }
-} 
+}
