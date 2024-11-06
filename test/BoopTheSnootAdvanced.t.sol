@@ -4,6 +4,8 @@ pragma solidity ^0.8.28;
 import "forge-std/Test.sol";
 import "../src/BoopTheSnoot.sol";
 import "./mocks/MockERC20.sol";
+import "./mocks/ReentrancyAttackToken.sol";
+import "./mocks/MockFailingToken.sol";
 import "@openzeppelin/access/IAccessControl.sol";
 
 contract BoopTheSnootAdvancedTest is Test {
@@ -402,5 +404,383 @@ contract BoopTheSnootAdvancedTest is Test {
         vm.expectRevert(abi.encodeWithSignature("ExceedsEntitlement()"));
         boopTheSnoot.claimRewards(claims, proofs);
         vm.stopPrank();
+    }
+
+    // Testing parameter boundaries and limits
+    function test_MaxCampaignDurationLimit() public {
+        uint256 startTimestamp = block.timestamp + 60;
+        uint256 endTimestamp = startTimestamp + 366 days; // Exceeds MAX_CAMPAIGN_DURATION
+
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSignature("InvalidCampaignDuration()"));
+        boopTheSnoot.createCampaign(
+            address(rewardToken),
+            address(lpToken),
+            1 ether,
+            startTimestamp,
+            endTimestamp,
+            1000 ether
+        );
+    }
+
+    // Testing batch claim limits
+    function test_ExceedsMaxTokensPerBatch() public {
+        vm.warp(block.timestamp + 61); // Move past campaign start
+
+        uint256 maxBatch = boopTheSnoot.maxTokensPerBatch();
+        BoopTheSnoot.RewardClaim[] memory claims = new BoopTheSnoot.RewardClaim[](maxBatch + 1);
+        bytes32[][] memory proofs = new bytes32[][](maxBatch + 1);
+
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSignature("ExceedsMaxTokensPerBatch()"));
+        boopTheSnoot.claimRewards(claims, proofs);
+    }
+
+    // Testing reentrancy protection
+    function test_ReentrancyProtection() public {
+        // Deploy malicious token that attempts reentrancy
+        ReentrancyAttackToken attackToken = new ReentrancyAttackToken();
+        
+        vm.prank(admin);
+        boopTheSnoot.whitelistToken(address(attackToken));
+
+        uint256 startTimestamp = block.timestamp + 60;
+        uint256 endTimestamp = startTimestamp + 3600;
+
+        vm.prank(owner);
+        vm.expectRevert(); // Should revert due to ReentrancyGuard
+        boopTheSnoot.createCampaign(
+            address(attackToken),
+            address(lpToken),
+            1 ether,
+            startTimestamp,
+            endTimestamp,
+            1000 ether
+        );
+    }
+
+    // Testing role management edge cases
+    function test_RoleRevocation() public {
+        vm.startPrank(owner);
+        
+        // Test revoking admin role
+        boopTheSnoot.revokeRole(ADMIN_ROLE, admin);
+        assertFalse(boopTheSnoot.hasRole(ADMIN_ROLE, admin));
+
+        // Verify revoked admin can't perform admin actions
+        vm.stopPrank();
+        vm.prank(admin);
+        vm.expectRevert();
+        boopTheSnoot.whitelistToken(address(rewardToken));
+    }
+
+    // Testing emergency scenarios
+    function test_EmergencyPause() public {
+        // Create active campaign
+        uint256 startTimestamp = block.timestamp + 60;
+        uint256 endTimestamp = startTimestamp + 3600;
+        
+        vm.prank(owner);
+        boopTheSnoot.createCampaign(
+            address(rewardToken),
+            address(lpToken),
+            1 ether,
+            startTimestamp,
+            endTimestamp,
+            1000 ether
+        );
+
+        // Emergency pause
+        vm.prank(admin);
+        boopTheSnoot.pause();
+
+        // Verify all critical functions are paused
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        vm.prank(user1);
+        boopTheSnoot.claimRewards(new BoopTheSnoot.RewardClaim[](0), new bytes32[][](0));
+    }
+
+    // Testing referral system edge cases
+    function test_ComplexReferralChain() public {
+        uint256 lpAmount = 10 ether;
+        
+        // First, create a campaign
+        uint256 startTimestamp = block.timestamp + 60;
+        uint256 endTimestamp = startTimestamp + 3600;
+        
+        vm.startPrank(owner);
+        boopTheSnoot.createCampaign(
+            address(rewardToken),
+            address(lpToken),
+            1 ether,
+            startTimestamp,
+            endTimestamp,
+            1000 ether
+        );
+        rewardToken.transfer(address(boopTheSnoot), 1000 ether);
+        vm.stopPrank();
+
+        // Mint LP tokens for all users
+        vm.startPrank(owner);
+        lpToken.mint(user1, 100 ether);
+        lpToken.mint(user2, 100 ether);
+        lpToken.mint(user3, 100 ether);
+        vm.stopPrank();
+
+        // Approvals
+        vm.prank(user1);
+        lpToken.approve(address(boopTheSnoot), 100 ether);
+        
+        vm.prank(user2);
+        lpToken.approve(address(boopTheSnoot), 100 ether);
+        
+        vm.prank(user3);
+        lpToken.approve(address(boopTheSnoot), 100 ether);
+
+        // Let's test each referral case separately
+        
+        // 1. Test self-referral (should fail)
+        address[] memory selfReferral = new address[](1);
+        selfReferral[0] = user1;
+        uint256[] memory selfAmount = new uint256[](1);
+        selfAmount[0] = lpAmount;
+
+        console.log("Testing self-referral...");
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSignature("SelfReferralNotAllowed()"));
+        boopTheSnoot.makeReferral(selfReferral, selfAmount);
+        console.log("Self-referral test passed");
+
+        // 2. Make a valid referral
+        address[] memory referees1 = new address[](1);
+        referees1[0] = user2;
+        uint256[] memory amounts1 = new uint256[](1);
+        amounts1[0] = lpAmount;
+
+        console.log("Making first referral...");
+        vm.prank(user1);
+        boopTheSnoot.makeReferral(referees1, amounts1);
+        
+        console.log("Checking referral state:");
+        console.log("user2's referrer:", boopTheSnoot.referrerOf(user2));
+        assertEq(boopTheSnoot.referrerOf(user2), user1, "user2 should be referred by user1");
+
+        // 3. Try to refer an already referred user
+        address[] memory referees2 = new address[](1);
+        referees2[0] = user2;  // user2 is already referred by user1
+        uint256[] memory amounts2 = new uint256[](1);
+        amounts2[0] = lpAmount;
+
+        console.log("Attempting to refer already referred user...");
+        vm.prank(user3);
+        try boopTheSnoot.makeReferral(referees2, amounts2) {
+            console.log("Should have reverted with UserAlreadyReferred");
+            fail();
+        } catch Error(string memory reason) {
+            console.log("Revert reason:", reason);
+        } catch (bytes memory rawRevert) {
+            console.log("Raw revert data:", vm.toString(rawRevert));
+        }
+    }
+
+    // Testing token approval and transfer edge cases
+    function test_TokenApprovalEdgeCases() public {
+        uint256 startTimestamp = block.timestamp + 60;
+        uint256 endTimestamp = startTimestamp + 3600;
+        
+        // Test with token that returns false on approve
+        MockFailingToken failingToken = new MockFailingToken();
+        
+        vm.prank(admin);
+        boopTheSnoot.whitelistToken(address(failingToken));
+        
+        vm.prank(owner);
+        vm.expectRevert();
+        boopTheSnoot.createCampaign(
+            address(failingToken),
+            address(lpToken),
+            1 ether,
+            startTimestamp,
+            endTimestamp,
+            1000 ether
+        );
+    }
+
+    function test_UpdateContractParameters() public {
+        // Test MAX_CAMPAIGN_DURATION update
+        vm.startPrank(admin);
+        uint256 newDuration = 180 days;
+        boopTheSnoot.proposeParameterChange("MAX_CAMPAIGN_DURATION", newDuration);
+        
+        vm.warp(block.timestamp + 3 days + 1);
+        boopTheSnoot.executeChange("MAX_CAMPAIGN_DURATION");
+        assertEq(boopTheSnoot.MAX_CAMPAIGN_DURATION(), newDuration);
+
+        // Test CREATOR_WITHDRAW_COOLDOWN update
+        uint256 newCreatorCooldown = 45 days;
+        boopTheSnoot.proposeParameterChange("CREATOR_WITHDRAW_COOLDOWN", newCreatorCooldown);
+        
+        vm.warp(block.timestamp + 3 days + 1);
+        boopTheSnoot.executeChange("CREATOR_WITHDRAW_COOLDOWN");
+        assertEq(boopTheSnoot.CREATOR_WITHDRAW_COOLDOWN(), newCreatorCooldown);
+
+        // Test ADMIN_WITHDRAW_COOLDOWN update
+        uint256 newAdminCooldown = 120 days;
+        boopTheSnoot.proposeParameterChange("ADMIN_WITHDRAW_COOLDOWN", newAdminCooldown);
+        
+        vm.warp(block.timestamp + 3 days + 1);
+        boopTheSnoot.executeChange("ADMIN_WITHDRAW_COOLDOWN");
+        assertEq(boopTheSnoot.ADMIN_WITHDRAW_COOLDOWN(), newAdminCooldown);
+
+        // Test MAX_TOKENS_PER_BATCH update
+        uint256 newMaxTokens = 100;
+        boopTheSnoot.proposeParameterChange("MAX_TOKENS_PER_BATCH", newMaxTokens);
+        
+        vm.warp(block.timestamp + 3 days + 1);
+        boopTheSnoot.executeChange("MAX_TOKENS_PER_BATCH");
+        assertEq(boopTheSnoot.maxTokensPerBatch(), newMaxTokens);
+
+        // Test invalid parameter name
+        vm.expectRevert();
+        boopTheSnoot.proposeParameterChange("INVALID_PARAM", 100);
+
+        // Test zero value proposal
+        vm.expectRevert();
+        boopTheSnoot.proposeParameterChange("MAX_CAMPAIGN_DURATION", 0);
+
+        // Test executing change too early
+        boopTheSnoot.proposeParameterChange("MAX_CAMPAIGN_DURATION", 200 days);
+        vm.expectRevert();
+        boopTheSnoot.executeChange("MAX_CAMPAIGN_DURATION");
+
+        // Test non-admin cannot propose changes
+        vm.stopPrank();
+        vm.prank(user1);
+        vm.expectRevert("AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
+        boopTheSnoot.proposeParameterChange("MAX_CAMPAIGN_DURATION", 200 days);
+    }
+
+    function test_CreatorWithdrawalScenarios() public {
+        uint256 startTimestamp = block.timestamp + 60;
+        uint256 endTimestamp = startTimestamp + 3600;
+        
+        vm.startPrank(owner);
+        boopTheSnoot.createCampaign(
+            address(rewardToken),
+            address(lpToken),
+            1 ether,
+            startTimestamp,
+            endTimestamp,
+            1000 ether
+        );
+        rewardToken.transfer(address(boopTheSnoot), 1000 ether);
+        vm.stopPrank();
+
+        uint256 campaignId = boopTheSnoot.campaignCount() - 1;
+
+        // Test withdrawal before campaign end
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSignature("CooldownPeriodNotPassed()"));
+        boopTheSnoot.withdrawUnclaimedRewards(campaignId);
+
+        // Move to just after campaign end but before cooldown
+        vm.warp(endTimestamp + 1);
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSignature("CooldownPeriodNotPassed()"));
+        boopTheSnoot.withdrawUnclaimedRewards(campaignId);
+
+        // Move past cooldown and test successful withdrawal
+        vm.warp(endTimestamp + boopTheSnoot.CREATOR_WITHDRAW_COOLDOWN() + 1);
+        uint256 initialBalance = rewardToken.balanceOf(owner);
+        
+        vm.prank(owner);
+        boopTheSnoot.withdrawUnclaimedRewards(campaignId);
+        
+        assertEq(rewardToken.balanceOf(owner), initialBalance + 1000 ether);
+
+        // Test double withdrawal prevention
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSignature("InsufficientRewardBalance()"));
+        boopTheSnoot.withdrawUnclaimedRewards(campaignId);
+    }
+
+    function test_MinLpTokenAmountManagement() public {
+        vm.startPrank(admin);
+        
+        // Test setting min LP token amount
+        uint256 minAmount = 5 ether;
+        boopTheSnoot.setMinLpTokenAmount(address(lpToken), minAmount);
+        assertEq(boopTheSnoot.minLpTokenAmounts(address(lpToken)), minAmount);
+
+        // Test updating existing min LP token amount
+        uint256 newMinAmount = 10 ether;
+        boopTheSnoot.setMinLpTokenAmount(address(lpToken), newMinAmount);
+        assertEq(boopTheSnoot.minLpTokenAmounts(address(lpToken)), newMinAmount);
+
+        vm.stopPrank();
+
+        // Test non-admin cannot set min LP token amount
+        vm.prank(user1);
+        vm.expectRevert();
+        boopTheSnoot.setMinLpTokenAmount(address(lpToken), minAmount);
+    }
+
+    function test_ReferralWithMinLpAmount() public {
+        // Setup campaign first
+        uint256 startTimestamp = block.timestamp + 60;
+        uint256 endTimestamp = startTimestamp + 3600;
+        
+        vm.startPrank(owner);
+        boopTheSnoot.createCampaign(
+            address(rewardToken),
+            address(lpToken),
+            1 ether,
+            startTimestamp,
+            endTimestamp,
+            1000 ether
+        );
+        rewardToken.transfer(address(boopTheSnoot), 1000 ether);
+        vm.stopPrank();
+
+        // Set min LP amount
+        uint256 minLpAmount = 5 ether;
+        vm.prank(admin);
+        boopTheSnoot.setMinLpTokenAmount(address(lpToken), minLpAmount);
+
+        // Setup LP token balances and approvals
+        vm.startPrank(user1);
+        lpToken.mint(user1, 10 ether);
+        lpToken.approve(address(boopTheSnoot), 10 ether);
+        vm.stopPrank();
+
+        // Try referral with amount less than minimum
+        address[] memory referees = new address[](1);
+        referees[0] = user2;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = minLpAmount - 1 ether;
+
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InsufficientLPTokenAmount()"));
+        boopTheSnoot.makeReferral(referees, amounts);
+
+        // Test successful referral with minimum amount
+        amounts[0] = minLpAmount;
+        vm.prank(user1);
+        boopTheSnoot.makeReferral(referees, amounts);
+    }
+
+    function test_InvalidRewardClaims() public {
+        // Test claim with empty arrays
+        vm.prank(user1);
+        vm.expectRevert();
+        boopTheSnoot.claimRewards(new BoopTheSnoot.RewardClaim[](0), new bytes32[][](0));
+
+        // Test claim with mismatched array lengths
+        BoopTheSnoot.RewardClaim[] memory claims = new BoopTheSnoot.RewardClaim[](1);
+        bytes32[][] memory proofs = new bytes32[][](2);
+        
+        vm.prank(user1);
+        vm.expectRevert();
+        boopTheSnoot.claimRewards(claims, proofs);
     }
 }
