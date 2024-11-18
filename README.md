@@ -5,6 +5,7 @@ A smart contract system for managing reward campaigns and referral programs on E
 ## Overview
 
 Boop The Snoot is a modular reward distribution system that enables:
+
 - Creation and management of reward campaigns
 - Merkle-tree based reward claiming
 - Referral program management
@@ -16,7 +17,7 @@ Boop The Snoot is a modular reward distribution system that enables:
 - **Campaign Management**: Create and manage reward campaigns with customizable parameters
 - **Reward Distribution**: Efficient reward distribution using Merkle proofs
 - **Referral System**: Built-in referral tracking with LP token integration
-- **Security Features**: 
+- **Security Features**:
   - Role-based access control
   - Reentrancy protection
   - Pausable functionality
@@ -34,12 +35,14 @@ Boop The Snoot is a modular reward distribution system that enables:
 ### Prerequisites
 
 1. Install Foundry:
+
 ```bash
 curl -L https://foundry.paradigm.xyz | bash
 foundryup
 ```
 
 2. Install dependencies:
+
 ```bash
 forge soldeer install
 ```
@@ -55,11 +58,13 @@ forge build
 ### Test
 
 Run all tests:
+
 ```bash
 forge test
 ```
 
 Run tests with detailed output:
+
 ```bash
 forge test -vv
 ```
@@ -73,6 +78,7 @@ forge fmt
 ### Deploy
 
 1. Deploy to Berachain Testnet (bArtio):
+
 ```bash
 forge create \
     --rpc-url https://bartio.rpc.berachain.com \
@@ -82,6 +88,7 @@ forge create \
 ```
 
 2. Deploy to Berachain Mainnet (when available):
+
 ```bash
 forge create \
     --rpc-url https://mainnet.rpc.berachain.com \
@@ -90,7 +97,21 @@ forge create \
     --legacy
 ```
 
+### Verify Contract
+
+1. Verify contract on Berachain Testnet (bArtio):
+
+```bash
+forge verify-contract [contract-address] src/BoopTheSnoot.sol:BoopTheSnoot \
+--verifier-url 'https://api.routescan.io/v2/network/testnet/evm/80084/etherscan' \
+--etherscan-api-key "verifyContract" \
+--num-of-optimizations 200 \
+--compiler-version 0.8.28 \
+--constructor-args $(cast abi-encode "constructor()")
+```
+
 Note: Make sure to:
+
 - Replace environment variables with actual values
 - Have sufficient BERA tokens for deployment on Berachain
 - Verify contract parameters before mainnet deployment
@@ -102,16 +123,19 @@ Note: Make sure to:
 ### Core Components
 
 1. **Campaign System**
+
    - Campaign creation and management
    - Reward rate controls
    - Token deposit/withdrawal mechanisms
 
 2. **Reward Distribution**
+
    - Merkle-tree based claiming
    - Support for both game and referral rewards
    - Batch claim processing
 
 3. **Referral Program**
+
    - Referrer-referee tracking
    - LP token integration
    - Anti-gaming mechanisms
@@ -133,6 +157,7 @@ Note: Make sure to:
 ## Testing
 
 The project includes comprehensive test suites:
+
 - Basic functionality tests
 - Advanced integration tests
 - Edge case handling
