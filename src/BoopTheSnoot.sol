@@ -14,10 +14,9 @@ contract BoopTheSnoot is ReentrancyGuard, Pausable, AccessControl {
     // Constants
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
-    uint256 public constant REWARD_PRECISION = 1e18;
     uint256 public constant CHANGE_DELAY = 3 days;
 
-    // State variables (previously constants, now changeable)
+    // State variables
     uint256 public MAX_CAMPAIGN_DURATION = 365 days;
     uint256 public CREATOR_WITHDRAW_COOLDOWN = 30 days;
     uint256 public ADMIN_WITHDRAW_COOLDOWN = 90 days;
@@ -268,22 +267,25 @@ contract BoopTheSnoot is ReentrancyGuard, Pausable, AccessControl {
     /**
      * @dev Function to make referrals.
      */
-    function makeReferral(address[] calldata _referees, uint256[] calldata _lpAmounts)
+    function makeReferral(address[] calldata _referees, address[] calldata _lpTokens, uint256[] calldata _lpAmounts)
         external
         nonReentrant
         whenNotPaused
     {
-        if (_referees.length != _lpAmounts.length) revert InvalidReferralInput();
+        if (_referees.length != _lpAmounts.length || _referees.length != _lpTokens.length) {
+            revert InvalidReferralInput();
+        }
         if (_referees.length > maxTokensPerBatch) revert BatchSizeTooLarge();
 
         for (uint256 i = 0; i < _referees.length; i++) {
             address referee = _referees[i];
+            address lpToken = _lpTokens[i];
             uint256 lpAmount = _lpAmounts[i];
 
             if (referee == msg.sender) revert SelfReferralNotAllowed();
             if (referrerOf[referee] != address(0)) revert UserAlreadyReferred();
 
-            IERC20(campaigns[0].lpToken).safeTransferFrom(msg.sender, referee, lpAmount);
+            IERC20(lpToken).safeTransferFrom(msg.sender, referee, lpAmount);
             referrerOf[referee] = msg.sender;
             referees[msg.sender].push(referee);
             emit ReferralMade(msg.sender, referee, lpAmount);

@@ -281,6 +281,8 @@ contract BoopTheSnootAdvancedTest is Test {
 
         address[] memory referees = new address[](1);
         referees[0] = user2;
+        address[] memory lpTokens = new address[](1);
+        lpTokens[0] = address(lpToken);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = lpAmount;
 
@@ -288,7 +290,7 @@ contract BoopTheSnootAdvancedTest is Test {
         emit ReferralMade(user1, user2, lpAmount);
 
         vm.prank(user1);
-        boopTheSnoot.makeReferral(referees, amounts);
+        boopTheSnoot.makeReferral(referees, lpTokens, amounts);
 
         assertEq(boopTheSnoot.referrerOf(user2), user1, "Referrer should be user1");
 
@@ -302,12 +304,14 @@ contract BoopTheSnootAdvancedTest is Test {
 
         address[] memory referees = new address[](1);
         referees[0] = user1; // Self-referral
+        address[] memory lpTokens = new address[](1);
+        lpTokens[0] = address(lpToken);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = lpAmount;
 
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("SelfReferralNotAllowed()"));
-        boopTheSnoot.makeReferral(referees, amounts);
+        boopTheSnoot.makeReferral(referees, lpTokens, amounts);
     }
 
     function test_PreventDuplicateReferral() public {
@@ -315,14 +319,16 @@ contract BoopTheSnootAdvancedTest is Test {
 
         address[] memory referees = new address[](1);
         referees[0] = user2;
+        address[] memory lpTokens = new address[](1);
+        lpTokens[0] = address(lpToken);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = lpAmount;
 
         vm.startPrank(user1);
-        boopTheSnoot.makeReferral(referees, amounts);
+        boopTheSnoot.makeReferral(referees, lpTokens, amounts);
 
         vm.expectRevert(abi.encodeWithSignature("UserAlreadyReferred()"));
-        boopTheSnoot.makeReferral(referees, amounts);
+        boopTheSnoot.makeReferral(referees, lpTokens, amounts);
         vm.stopPrank();
     }
 
@@ -332,11 +338,13 @@ contract BoopTheSnootAdvancedTest is Test {
 
         address[] memory referees = new address[](1);
         referees[0] = user2;
+        address[] memory lpTokens = new address[](1);
+        lpTokens[0] = address(lpToken);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = lpAmount;
 
         vm.prank(user1);
-        boopTheSnoot.makeReferral(referees, amounts);
+        boopTheSnoot.makeReferral(referees, lpTokens, amounts);
 
         // Setup referral reward claim
         uint256 referralAmount = 50 ether;
@@ -374,11 +382,13 @@ contract BoopTheSnootAdvancedTest is Test {
 
         address[] memory referees = new address[](1);
         referees[0] = user2;
+        address[] memory lpTokens = new address[](1);
+        lpTokens[0] = address(lpToken);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = lpAmount;
 
         vm.prank(user1);
-        boopTheSnoot.makeReferral(referees, amounts);
+        boopTheSnoot.makeReferral(referees, lpTokens, amounts);
 
         // Setup referral reward claim
         uint256 referralAmount = 50 ether;
@@ -519,17 +529,18 @@ contract BoopTheSnootAdvancedTest is Test {
 
         // Let's test each referral case separately
 
+        address[] memory lpTokens = new address[](1);
+        lpTokens[0] = address(lpToken);
+
         // 1. Test self-referral (should fail)
         address[] memory selfReferral = new address[](1);
         selfReferral[0] = user1;
         uint256[] memory selfAmount = new uint256[](1);
         selfAmount[0] = lpAmount;
 
-        console.log("Testing self-referral...");
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("SelfReferralNotAllowed()"));
-        boopTheSnoot.makeReferral(selfReferral, selfAmount);
-        console.log("Self-referral test passed");
+        boopTheSnoot.makeReferral(selfReferral, lpTokens, selfAmount);
 
         // 2. Make a valid referral
         address[] memory referees1 = new address[](1);
@@ -537,9 +548,8 @@ contract BoopTheSnootAdvancedTest is Test {
         uint256[] memory amounts1 = new uint256[](1);
         amounts1[0] = lpAmount;
 
-        console.log("Making first referral...");
         vm.prank(user1);
-        boopTheSnoot.makeReferral(referees1, amounts1);
+        boopTheSnoot.makeReferral(referees1, lpTokens, amounts1);
 
         console.log("Checking referral state:");
         console.log("user2's referrer:", boopTheSnoot.referrerOf(user2));
@@ -553,7 +563,7 @@ contract BoopTheSnootAdvancedTest is Test {
 
         console.log("Attempting to refer already referred user...");
         vm.prank(user3);
-        try boopTheSnoot.makeReferral(referees2, amounts2) {
+        try boopTheSnoot.makeReferral(referees2, lpTokens, amounts2) {
             console.log("Should have reverted with UserAlreadyReferred");
             fail();
         } catch Error(string memory reason) {
